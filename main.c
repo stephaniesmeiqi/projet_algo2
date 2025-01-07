@@ -1,71 +1,62 @@
 #include "jeu.h"
-#include "player.h"
+#include "ia.h"
+#include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include <stdlib.h>
 
-bool jouerTour(Plateau *plateau) {
-    int x, y;
-    char action;
-    printf("Choisissez une action (R pour reveler, F pour placer un drapeau, U pour retirer un drapeau, A pour afficher les recommandations) et les coordonnees (x y) : ");
-    scanf(" %c %d %d", &action, &x, &y);
+int main() {
+    Noeud *racine = initialiserArbre(GRILLE);
+    srand(time(NULL));
 
-    if ((action != 'A' && (x < 0 || x >= GRILLE || y < 0 || y >= GRILLE))) {
-        printf("Coordonnees invalides.\n");
-        return false;
-    }
+    placerMines(racine, GRILLE, MINES);
+    calculerMinesAdjacentes(racine);
 
-    switch (action) {
-        case 'R':
-            if (plateau->grille[x][y].estMine) {
-                return true;
-            }
-            explorerCasesAdjacentes(plateau, x, y);
-            break;
+    bool perdu = false;
 
-        case 'F':
-            placerDrapeau(plateau, x, y);
-            break;
+    while (!perdu) {
+        afficherPlateau(racine);
+        printf("Choisissez une action (R pour révéler, F pour placer un drapeau, U pour retirer un drapeau, A pour afficher les recommandations, Q pour quitter) : ");
+        char action;
+        int x, y;
+        scanf(" %c", &action);
 
-        case 'U':
-            retirerDrapeau(plateau, x, y);
-            break;
-
-        case 'A': {
-            ArbreDecision *arbre = construireArbre(plateau, x, y);
-            afficherRecommandations(arbre);
-            free(arbre);
+        if (action == 'Q' || action == 'q') {
+            printf("Vous avez quitté le jeu.\n");
             break;
         }
 
-        default:
-            printf("Action invalide.\n");
+        if (action != 'A') {
+            scanf("%d %d", &x, &y);
+            Noeud *caseChoisie = rechercherNoeud(racine, x, y);
+            if (caseChoisie == NULL) {
+                printf("Coordonnées invalides.\n");
+                continue;
+            }
+
+            switch (action) {
+                case 'R':
+                    if (caseChoisie->estMine) {
+                        printf("Vous avez perdu !\n");
+                        perdu = true;
+                    } else {
+                        explorerCases(caseChoisie);
+                    }
+                    break;
+                case 'F':
+                    caseChoisie->drapeau = true;
+                    break;
+                case 'U':
+                    retirerDrapeau(caseChoisie);
+                    break;
+                default:
+                    printf("Action invalide.\n");
+            }
+        } else {
+            afficherRecommandationsIA(racine);
+        }
     }
-    return false;
-}
 
-int main() {
-    Plateau plateau;
-    bool perdu = false;
-    time_t debut;
-
-    srand(time(NULL));
-    initialiserPlateau(&plateau);
-    placerMines(&plateau);
-    calculerMinesAdjacentes(&plateau);
-    debut = time(NULL);
-
-    while (!perdu && plateau.casesRevelees < (GRILLE * GRILLE - MINES)) {
-        afficherPlateau(&plateau);
-        perdu = jouerTour(&plateau);
-    }
-
-    if (perdu) {
-        printf("Vous avez perdu !\n");
-    } else {
-        printf("Felicitation, vous avez gagne en %ld secondes !\n", time(NULL) - debut);
-    }
-
-    afficherPlateau(&plateau);
+    libererArbre(racine);
+    printf("Partie terminée.\n");
     return 0;
 }

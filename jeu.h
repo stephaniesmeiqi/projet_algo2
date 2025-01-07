@@ -1,32 +1,29 @@
 #ifndef JEU_H
 #define JEU_H
-
 #include <stdbool.h>
 
-#define GRILLE 10
+#define GRILLE 20
 #define MINES 20
 
-typedef struct {
+typedef struct Noeud {
+    int x, y;
     bool estMine;
     bool revelee;
     bool drapeau;
     int minesAdjacentes;
-} Case;
+    struct Noeud *haut;
+    struct Noeud *bas;
+    struct Noeud *gauche;
+    struct Noeud *droite;
+} Noeud;
 
-typedef struct {
-    Case grille[GRILLE][GRILLE];
-    int casesRevelees;
-} Plateau;
-
-void initialiserPlateau(Plateau *plateau);
-void placerMines(Plateau *plateau);
-void calculerMinesAdjacentes(Plateau *plateau);
-void explorerCasesAdjacentes(Plateau *plateau, int x, int y);
-void placerDrapeau(Plateau *plateau, int x, int y);
-void retirerDrapeau(Plateau *plateau, int x, int y);
-void afficherPlateau(Plateau *plateau);
+Noeud* initialiserArbre(int taille);
+void placerMines(Noeud *racine, int taille, int nombreMines);
+void calculerMinesAdjacentes(Noeud *racine);
+void explorerCases(Noeud *noeud);
+void afficherPlateau(Noeud *racine);
+Noeud* rechercherNoeud(Noeud *racine, int x, int y);
+void retirerDrapeau(Noeud *noeud);
+void libererArbre(Noeud *racine);
 
 #endif
-
-
-

@@ -1,102 +1,150 @@
+// jeu.c
 #include "jeu.h"
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 
-void initialiserPlateau(Plateau *plateau) {
-    for (int i = 0; i < GRILLE; i++) {
-        for (int j = 0; j < GRILLE; j++) {
-            plateau->grille[i][j].estMine = false;
-            plateau->grille[i][j].revelee = false;
-            plateau->grille[i][j].drapeau = false;
-            plateau->grille[i][j].minesAdjacentes = 0;
-        }
-    }
-    plateau->casesRevelees = 0;
+Noeud* creerNoeud(int x, int y) {
+    Noeud *noeud = (Noeud *)malloc(sizeof(Noeud));
+    noeud->x = x;
+    noeud->y = y;
+    noeud->estMine = false;
+    noeud->revelee = false;
+    noeud->drapeau = false;
+    noeud->minesAdjacentes = 0;
+    noeud->haut = NULL;
+    noeud->bas = NULL;
+    noeud->gauche = NULL;
+    noeud->droite = NULL;
+    return noeud;
 }
 
-void placerMines(Plateau *plateau) {
+Noeud* initialiserArbre(int taille) {
+    Noeud *racine = creerNoeud(0, 0);
+    Noeud *ligneCourante = racine;
+
+    for (int i = 0; i < taille; i++) {
+        Noeud *courant = ligneCourante;
+        for (int j = 0; j < taille; j++) {
+            if (j < taille - 1) {
+                courant->droite = creerNoeud(i, j + 1);
+                courant->droite->gauche = courant;
+                courant = courant->droite;
+            }
+        }
+        if (i < taille - 1) {
+            ligneCourante->bas = creerNoeud(i + 1, 0);
+            ligneCourante->bas->haut = ligneCourante;
+            ligneCourante = ligneCourante->bas;
+        }
+    }
+
+    return racine;
+}
+
+void placerMines(Noeud *racine, int taille, int nombreMines) {
     int placedMines = 0;
-    while (placedMines < MINES) {
-        int x = rand() % GRILLE;
-        int y = rand() % GRILLE;
-        if (!plateau->grille[x][y].estMine) {
-            plateau->grille[x][y].estMine = true;
+    while (placedMines < nombreMines) {
+        int x = rand() % taille;
+        int y = rand() % taille;
+        Noeud *noeud = rechercherNoeud(racine, x, y);
+        if (noeud != NULL && !noeud->estMine) {
+            noeud->estMine = true;
             placedMines++;
         }
     }
 }
 
-void calculerMinesAdjacentes(Plateau *plateau) {
-    for (int x = 0; x < GRILLE; x++) {
-        for (int y = 0; y < GRILLE; y++) {
-            if (plateau->grille[x][y].estMine) {
-                continue;
+void calculerMinesAdjacentes(Noeud *racine) {
+    if (racine == NULL) return;
+
+    Noeud *ligne = racine;
+    while (ligne != NULL) {
+        Noeud *courant = ligne;
+        while (courant != NULL) {
+            if (!courant->estMine) {
+                int count = 0;
+                if (courant->haut && courant->haut->estMine) count++;
+                if (courant->bas && courant->bas->estMine) count++;
+                if (courant->gauche && courant->gauche->estMine) count++;
+                if (courant->droite && courant->droite->estMine) count++;
+                courant->minesAdjacentes = count;
             }
-            int count = 0;
-            for (int i = -1; i <= 1; i++) {
-                for (int j = -1; j <= 1; j++) {
-                    int nx = x + i;
-                    int ny = y + j;
-                    if (nx >= 0 && nx < GRILLE && ny >= 0 && ny < GRILLE && plateau->grille[nx][ny].estMine) {
-                        count++;
-                    }
-                }
-            }
-            plateau->grille[x][y].minesAdjacentes = count;
+            courant = courant->droite;
         }
+        ligne = ligne->bas;
     }
 }
 
-void explorerCasesAdjacentes(Plateau *plateau, int x, int y) {
-    if (x < 0 || x >= GRILLE || y < 0 || y >= GRILLE || plateau->grille[x][y].revelee || plateau->grille[x][y].drapeau) {
-        return;
-    }
+void explorerCases(Noeud *noeud) {
+    if (noeud == NULL || noeud->revelee || noeud->drapeau) return;
 
-    plateau->grille[x][y].revelee = true;
-    plateau->casesRevelees++;
+    noeud->revelee = true;
 
-    if (plateau->grille[x][y].minesAdjacentes == 0) {
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i != 0 || j != 0) {
-                    explorerCasesAdjacentes(plateau, x + i, y + j);
-                }
-            }
-        }
+    if (noeud->minesAdjacentes == 0) {
+        explorerCases(noeud->haut);
+        explorerCases(noeud->bas);
+        explorerCases(noeud->gauche);
+        explorerCases(noeud->droite);
     }
 }
 
-void placerDrapeau(Plateau *plateau, int x, int y) {
-    if (!plateau->grille[x][y].revelee) {
-        plateau->grille[x][y].drapeau = true;
-    }
-}
+void afficherPlateau(Noeud *racine) {
+    if (racine == NULL) return;
 
-void retirerDrapeau(Plateau *plateau, int x, int y) {
-    plateau->grille[x][y].drapeau = false;
-}
-
-void afficherPlateau(Plateau *plateau) {
+    Noeud *ligne = racine;
     printf("   ");
     for (int i = 0; i < GRILLE; i++) {
         printf("%d ", i);
     }
     printf("\n");
-    for (int i = 0; i < GRILLE; i++) {
-        printf("%d  ", i);
-        for (int j = 0; j < GRILLE; j++) {
-            if (plateau->grille[i][j].revelee) {
-                if (plateau->grille[i][j].estMine) {
+
+    int row = 0;
+    while (ligne != NULL) {
+        printf("%d  ", row++);
+        Noeud *courant = ligne;
+        while (courant != NULL) {
+            if (courant->revelee) {
+                if (courant->estMine) {
                     printf("M ");
                 } else {
-                    printf("%d ", plateau->grille[i][j].minesAdjacentes);
+                    printf("%d ", courant->minesAdjacentes);
                 }
-            } else if (plateau->grille[i][j].drapeau) {
+            } else if (courant->drapeau) {
                 printf("D ");
             } else {
                 printf("# ");
             }
+            courant = courant->droite;
         }
         printf("\n");
+        ligne = ligne->bas;
     }
+}
+
+Noeud* rechercherNoeud(Noeud *racine, int x, int y) {
+    Noeud *ligne = racine;
+    while (ligne != NULL) {
+        Noeud *courant = ligne;
+        while (courant != NULL) {
+            if (courant->x == x && courant->y == y) {
+                return courant;
+            }
+            courant = courant->droite;
+        }
+        ligne = ligne->bas;
+    }
+    return NULL;
+}
+
+void retirerDrapeau(Noeud *noeud) {
+    if (noeud != NULL && noeud->drapeau) {
+        noeud->drapeau = false;
+    }
+}
+
+void libererArbre(Noeud *racine) {
+    if (racine == NULL) return;
+    libererArbre(racine->droite);
+    libererArbre(racine->bas);
+    free(racine);
 }
