@@ -3,6 +3,11 @@
 
 #include "jeu.h"
 
-void afficherRecommandationsIA(Noeud *racine);
+typedef struct Decision {
+    int x, y;
+    char action; 
+} Decision;
+
+Decision ia_decisionnelle(Noeud *racine);
 
 #endif

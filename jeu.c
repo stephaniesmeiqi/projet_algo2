@@ -11,8 +11,8 @@ Noeud* creerNoeud(int x, int y) {
     noeud->revelee = false;
     noeud->drapeau = false;
     noeud->minesAdjacentes = 0;
-    noeud->haut = NULL;
-    noeud->bas = NULL;
+    noeud->haut = NULL;  
+    noeud->bas = NULL; 
     noeud->gauche = NULL;
     noeud->droite = NULL;
     return noeud;
@@ -102,10 +102,11 @@ void afficherPlateau(Noeud *racine) {
     while (ligne != NULL) {
         printf("%d  ", row++);
         Noeud *courant = ligne;
+        
         while (courant != NULL) {
             if (courant->revelee) {
                 if (courant->estMine) {
-                    printf("M ");
+                    
                 } else {
                     printf("%d ", courant->minesAdjacentes);
                 }
@@ -147,4 +148,20 @@ void libererArbre(Noeud *racine) {
     libererArbre(racine->droite);
     libererArbre(racine->bas);
     free(racine);
+}
+
+bool verifierVictoire(Noeud *racine) {
+    Noeud *ligne = racine;
+    while (ligne != NULL) {
+        Noeud *courant = ligne;
+        while (courant != NULL) {
+            // Si une case non-mine n'est pas révélée, le joueur n'a pas encore gagné
+            if (!courant->estMine && !courant->revelee) {
+                return false;
+            }
+            courant = courant->droite;
+        }
+        ligne = ligne->bas;
+    }
+    return true; // Toutes les cases non-mine ont été révélées
 }

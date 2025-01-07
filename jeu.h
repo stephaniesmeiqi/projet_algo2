@@ -2,7 +2,7 @@
 #define JEU_H
 #include <stdbool.h>
 
-#define GRILLE 20
+#define GRILLE 10
 #define MINES 20
 
 typedef struct Noeud {
@@ -25,5 +25,6 @@ void afficherPlateau(Noeud *racine);
 Noeud* rechercherNoeud(Noeud *racine, int x, int y);
 void retirerDrapeau(Noeud *noeud);
 void libererArbre(Noeud *racine);
+bool verifierVictoire(Noeud *racine);
 
 #endif
