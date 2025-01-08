@@ -83,8 +83,8 @@ void explorerCases(Noeud *noeud) {
     if (noeud->minesAdjacentes == 0) {
         explorerCases(noeud->haut);
         explorerCases(noeud->bas);
-        explorerCases(noeud->gauche);
-        explorerCases(noeud->droite);
+        explorerCases(noeud->gauche); 
+        explorerCases(noeud->droite); 
     }
 }
 
